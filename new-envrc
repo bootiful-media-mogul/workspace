@@ -1,0 +1,42 @@
+# we need access to our key manager for any of this to work
+export BW_SESSION=$(bw unlock --raw)
+
+export PODCASTS_PROCESSOR_RMQ_REQUESTS=podcast-processor-requests
+export PODCASTS_PROCESSOR_RMQ_REPLIES=podcast-processor-replies
+
+export DB_USERNAME=mogul
+export DB_PASSWORD=mogul
+export DB_HOST=localhost
+export DB_SCHEMA=mogul
+
+export RMQ_HOST=127.0.0.1
+export RMQ_USERNAME=mogul
+export RMQ_PASSWORD=mogul
+export RMQ_VIRTUAL_HOST=/
+export RMQ_ADDRESS=rmq://${RMQ_USERNAME}:${RMQ_PASSWORD}@${RMQ_HOST}/${RMQ_VIRTUAL_HOST}
+
+export OPENAI_KEY=$(bw get password bootiful-openai-key)
+
+export AWS_REGION="$(bw get item aws-s3-credentials--production | jq -r '.fields[] | select(.name == "region") | .value')"
+export AWS_ACCESS_KEY_ID="$(bw get item aws-s3-credentials--production | jq -r '.fields[] | select(.name == "access-key") | .value')"
+export AWS_ACCESS_KEY_SECRET="$(bw get item aws-s3-credentials--production | jq -r '.fields[] | select(.name == "access-key-secret") | .value')"
+
+
+export PODCAST_ASSETS_S3_BUCKET=podcast-assets-bucket-dev
+export PODCAST_ASSETS_S3_BUCKET_FOLDER=062019
+export PODCAST_INPUT_S3_BUCKET=podcast-input-bucket-dev
+export PODCAST_OUTPUT_S3_BUCKET=podcast-output-bucket-dev
+
+export IDP_ISSUER_URI=http://localhost:9090
+
+export SPRING_DATASOURCE_URL="jdbc:postgresql://${DB_HOST}/${DB_SCHEMA}"
+export SPRING_DATASOURCE_USERNAME=$DB_USERNAME
+export SPRING_DATASOURCE_PASSWORD=$DB_PASSWORD
+
+export SPRING_RABBITMQ_USERNAME=$RMQ_USERNAME
+export SPRING_RABBITMQ_PASSWORD=$RMQ_PASSWORD
+export SPRING_RABBITMQ_VIRTUAL_HOST=${RMQ_VIRTUAL_HOST}
+
+export PODBEAN_CLIENT_ID="$(      bw get item development-podbean | jq -r '.fields[] | select(.name == "client-id") | .value'  )"
+export PODBEAN_CLIENT_SECRET="$(  bw get item development-podbean | jq -r '.fields[] | select(.name == "client-secret") | .value'  )"
+

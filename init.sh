@@ -17,3 +17,4 @@ for i in mogul-audio-processor authorization mogul-gateway mogul-client mogul-se
 done
 
 cp new-envrc $CLONE_DIR/.envrc
+cp compose.yml $CLONE_DIR/compose.yml

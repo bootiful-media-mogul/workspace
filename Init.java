@@ -8,21 +8,22 @@ public class Init {
         var cwd = new File(".").getAbsolutePath();
         var ghOrg = "git@github.com:bootiful-media-mogul";
         var clone = new File(System.getenv("HOME") + "/code/mogul");
-        if (clone.exists()) clone.mkdirs();
-        try (var ex = Executors.newCachedThreadPool();) {
+        if (!clone.exists()) clone.mkdirs();
+        try (var ex = Executors.newCachedThreadPool()) {
+
             var repositories = ("mogul-audio-processor authorization-service mogul-gateway" +
                     " mogul-client mogul-service workspace pipeline")
                     .split(" ");
+
             var waiting = new HashSet<Future<?>>();
-            for (var repo : repositories) {
-                var dir = new File(clone, repo.trim());
-                waiting.add(ex.submit(run(ghOrg + "/" + repo + ".git", dir)));
-            }
+            for (var repo : repositories)
+                waiting.add(ex.submit(run(ghOrg + "/" + repo + ".git", new File(clone, repo.trim()))));
+
             for (var f : waiting) f.get();
         }
 
         for (var tc : new File(cwd, "to-copy").listFiles())
-            exec("cp " + tc.getAbsolutePath() + " " + new File(clone, tc.getName()).getAbsolutePath());
+            exec("cp -r  " + tc.getAbsolutePath() + " " + new File(clone, tc.getName()).getAbsolutePath());
 
         for (var f : clone.listFiles())
             System.out.println("" + f.getAbsolutePath());
@@ -37,18 +38,15 @@ public class Init {
             System.out.println(cmd + " exited improperly.");
     }
 
-    private static Runnable run(
-            String gitUrl,
-            File folder) {
+    private static Runnable run(String gitUrl, File folder) {
         return (Runnable) () -> {
             try {
                 var fullPath = folder.getAbsolutePath();
                 var cmd = folder.exists() ? "cd " + fullPath + " ; git pull " : "git clone " + gitUrl + " " + fullPath;
-                System.out.println("cmd: " + cmd);
                 exec(cmd);
             } //
             catch (Exception ioException) {
-                System.out.println("got an exception: [" + ioException + "]");
+                System.err.println("got an exception: [" + ioException + "]");
             }
         };
     }

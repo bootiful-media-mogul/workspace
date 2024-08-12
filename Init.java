@@ -11,7 +11,7 @@ public class Init {
         if (!clone.exists()) clone.mkdirs();
         try (var ex = Executors.newCachedThreadPool()) {
 
-            var repositories = ("mogul-podcast-audio-processor authorization-service mogul-gateway" +
+            var repositories = ("mogul-podcast-audio-processor mogul-gateway" +
                     " mogul-client mogul-service workspace pipeline")
                     .split(" ");
 

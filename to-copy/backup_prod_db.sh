@@ -4,7 +4,7 @@ echo "SQL_FILE is ${SQL_FILE}"
 SQL_FILE=${SQL_FILE:-$HOME/Desktop/pg_dump.sql}
 SQL_CREDS=$( bw get item mogul-crunchydata-db-production )
 DB_PW=$( echo $SQL_CREDS |    jq '.. | objects | select(.name == "password" ) '  | jq -r .value )
-DB_HOST=$( echo $SQL_CREDS |    jq '.. | objects | select(.name == "hostname" ) '  | jq -r .value )
+DB_HOST=$( echo $SQL_CREDS |    jq '.. | objects | select(.name == "host" ) '  | jq -r .value )
 DB_DB=$( echo $SQL_CREDS |    jq '.. | objects | select(.name == "database" ) '  | jq -r .value )
 DB_USER=$( echo $SQL_CREDS |    jq '.. | objects | select(.name == "username" ) '  | jq -r .value )
 

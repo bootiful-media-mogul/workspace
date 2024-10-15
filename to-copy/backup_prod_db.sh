@@ -2,11 +2,11 @@
 export BW_SESSION=${BW_SESSION:-$(bw unlock --raw)}
 
 SQL_FILE=${SQL_FILE:-$HOME/Desktop/pg_dump.sql}
-GKE_SQL_CREDS=$( bw get item mogul-gke-postgresql-db--production )
-DB_PW=$( echo $GKE_SQL_CREDS |    jq '.. | objects | select(.name == "password" ) '  | jq -r .value )
-DB_HOST=$( echo $GKE_SQL_CREDS |    jq '.. | objects | select(.name == "hostname" ) '  | jq -r .value )
-DB_DB=$( echo $GKE_SQL_CREDS |    jq '.. | objects | select(.name == "database" ) '  | jq -r .value )
-DB_USER=$( echo $GKE_SQL_CREDS |    jq '.. | objects | select(.name == "username" ) '  | jq -r .value )
+SQL_CREDS=$( bw get item mogul-crunchydata-db-production )
+DB_PW=$( echo $SQL_CREDS |    jq '.. | objects | select(.name == "password" ) '  | jq -r .value )
+DB_HOST=$( echo $SQL_CREDS |    jq '.. | objects | select(.name == "hostname" ) '  | jq -r .value )
+DB_DB=$( echo $SQL_CREDS |    jq '.. | objects | select(.name == "database" ) '  | jq -r .value )
+DB_USER=$( echo $SQL_CREDS |    jq '.. | objects | select(.name == "username" ) '  | jq -r .value )
 
 #echo $DB_PW
 #echo $DB_HOST

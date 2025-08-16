@@ -12,7 +12,7 @@ void main(String[] args) throws Exception {
 
     try (var ex = Executors.newCachedThreadPool()) {
 
-        var repositories = ("mogul-gateway mogul-client mogul-service workspace pipeline")
+        var repositories = ("mogul-clip mogul-gateway mogul-client mogul-service workspace pipeline")
                 .split(" ");
 
         var waiting = new HashSet<Future<?>>();

@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 set -euo pipefail
 export BW_SESSION="$(bw unlock --raw)"
-eval "$(./workspace/bin/env.java)"
+eval "$(./env.java)"

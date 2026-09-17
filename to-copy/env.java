@@ -8,6 +8,11 @@ import com.joshlong.bitwarden.Bitwarden;
 import com.joshlong.bitwarden.DefaultBitwarden;
 import tools.jackson.databind.JsonNode;
 
+/**
+ * i wrote a <em>very</em> anemic little wrappper on top of the Bitwarden CLI and published it to Maven Central.
+ * That wrapper makes the orchestration in this script possible.
+ */
+
 void main(String[] args) throws Exception {
     var bw = new DefaultBitwarden(System.getenv("BW_SESSION"));
     try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {

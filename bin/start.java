@@ -1,3 +1,7 @@
+//usr/bin/env jbang "$0" "$@" ; exit $?
+//JAVA 25
+
+
 import java.io.*;
 import java.util.*;
 import java.util.concurrent.*;

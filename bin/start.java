@@ -22,20 +22,20 @@ void main(String[] args) throws Exception {
         for (var f : waiting) f.get();
     }
 
-    for (var tc : new File(cwd, "to-copy").listFiles())
+    for (var tc : new File(cwd, "../to-copy").listFiles())
         exec("cp -r  " + tc.getAbsolutePath() + " " + new File(clone, tc.getName()).getAbsolutePath());
 
     for (var f : clone.listFiles())
-        System.out.println("" + f.getAbsolutePath());
+        IO.println("" + f.getAbsolutePath());
 
-    System.out.println("Finished initializing " + clone.getAbsolutePath());
+    IO.println("Finished initializing " + clone.getAbsolutePath());
 }
 
 private static void exec(String cmd) throws Exception {
     var proc = Runtime.getRuntime().exec(cmd);
     var exit = proc.waitFor();
     if (exit != 0)
-        System.out.println(cmd + " exited improperly.");
+        IO.println(cmd + " exited improperly.");
 }
 
 private static Runnable run(String gitUrl, File folder) {

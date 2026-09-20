@@ -1,0 +1,19 @@
+[env]
+MOGUL_HOME = "{{ env.HOME }}/code/mogul"
+
+# No `_.source` here on purpose. mise re-runs env scripts on essentially every shell prompt,
+# and loading the secrets costs 5-6 seconds (a JVM plus eight Bitwarden CLI lookups), so
+# wiring bin/env.sh in here made every command look like it had hung. Secrets are loaded
+# into the shell instead, once per terminal:
+#
+#   bw-unlock                 # from the bitwarden block in ~/.zshrc
+#   source bin/env.sh         # this repo
+#
+# They stay put afterwards: mise only strips variables it set itself.
+
+[tools]
+java = "graalvm-community-25.0.2"
+jbang = "latest"
+# bw is what bin/env.sh talks to; without declaring it here its shim resolves to nothing
+# ("No version is set for shim: bw") even though mise has it installed globally.
+bitwarden = "latest"

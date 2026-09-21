@@ -15,5 +15,5 @@ cd workspace
 * make sure to open a new shell then cd `~/code/mogul`
 * run `bw-unlock`
 ```
-source `env.sh`
+source env.sh 
 ```

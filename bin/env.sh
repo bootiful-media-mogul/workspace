@@ -1,14 +1,5 @@
 #!/usr/bin/env bash
-# Source this - do not run it - to put Mogul's secrets into the current shell:
-#
-#   bw-unlock            # unlocks the vault, from the bitwarden block in ~/.zshrc
-#   source bin/env.sh    # this file
-#
-# It is deliberately not wired into mise.toml as an `_.source` script. mise re-runs those on
-# essentially every shell prompt and re-runs them from a clean environment, so env.java's
-# 5-6 seconds were being paid before every command and every command looked like it hung.
-# Loaded here the variables land in the shell's own environment and stay - mise only strips
-# variables it set itself.
+
 
 _mogul_home="${MOGUL_HOME:-$HOME/code/mogul}"
 

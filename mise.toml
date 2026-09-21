@@ -7,7 +7,7 @@ MOGUL_HOME = "{{ env.HOME }}/code/mogul"
 # into the shell instead, once per terminal:
 #
 #   bw-unlock                 # from the bitwarden block in ~/.zshrc
-#   source bin/env.sh         # this repo
+#   source workspace/bin/env.sh         # this repo
 #
 # They stay put afterwards: mise only strips variables it set itself.
 

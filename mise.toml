@@ -1,6 +1,7 @@
 [env]
 MOGUL_HOME = "{{ env.HOME }}/code/mogul"
 _.path = ["{{ env.MOGUL_HOME }}/workspace/bin"]
+MAVEN_ARGS = " -s {{ env.MOGUL_HOME }}/workspace/bin/settings.xml "
 
 # No `_.source` here on purpose. mise re-runs env scripts on essentially every shell prompt,
 # and loading the secrets costs 5-6 seconds (a JVM plus eight Bitwarden CLI lookups), so

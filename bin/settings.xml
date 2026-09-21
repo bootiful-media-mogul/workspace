@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Maven settings for publishing to / resolving from GitHub Packages.
+
+  This file is version controlled and PUBLIC: never put a token in it.
+  Credentials are interpolated from the environment at build time, so
+  GH_USER and GH_TOKEN must be exported before running a build.
+
+  Used via:  ./mvnw -s /path/to/workspace/bin/settings.xml deploy
+  (see deploy_library.sh, which wires this up automatically)
+
+  The <id> below must match the <id> of the <repository> entries in the
+  consuming project's pom.xml (distributionManagement and repositories).
+-->
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
+                              https://maven.apache.org/xsd/settings-1.0.0.xsd">
+
+    <servers>
+        <server>
+            <id>github</id>
+            <username>${env.GH_USER}</username>
+            <password>${env.GH_TOKEN}</password>
+        </server>
+    </servers>
+
+</settings>

@@ -1,3 +1,2 @@
 #!/usr/bin/env bash
-
-docker compose  -f  $(dirname $0)/compose.yaml up -d
+docker compose -f $MOGUL_HOME/workspace/bin/compose.yaml up -d

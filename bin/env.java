@@ -105,7 +105,7 @@ void contributeAuth0(Bitwarden bitwarden, Map<String, String> env) {
 }
 
 void contributeGithub(Bitwarden bitwarden, Map<String, String> env) {
-    var mogulGithubPat = bitwarden.item("mogul-github-pat").get("notes")  .textValue();
+    var mogulGithubPat = bitwarden.item("mogul-github-packages-pat").get("notes").textValue();
     env.put("GH_USER", "joshlong");
     env.put("GH_TOKEN", mogulGithubPat);
 }

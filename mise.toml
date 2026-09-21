@@ -1,5 +1,6 @@
 [env]
 MOGUL_HOME = "{{ env.HOME }}/code/mogul"
+_.path = ["{{ env.MOGUL_HOME }}/workspace/bin"]
 
 # No `_.source` here on purpose. mise re-runs env scripts on essentially every shell prompt,
 # and loading the secrets costs 5-6 seconds (a JVM plus eight Bitwarden CLI lookups), so
@@ -7,7 +8,7 @@ MOGUL_HOME = "{{ env.HOME }}/code/mogul"
 # into the shell instead, once per terminal:
 #
 #   bw-unlock                 # from the bitwarden block in ~/.zshrc
-#   source workspace/bin/env.sh         # this repo
+#   source bin/env.sh         # this repo
 #
 # They stay put afterwards: mise only strips variables it set itself.
 

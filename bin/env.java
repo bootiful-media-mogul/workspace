@@ -18,9 +18,8 @@ void main(String[] args) throws Exception {
     try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
         var env = this.build(bw, executor);
         var script = "";
-        for (var e : env.entrySet()) {
+        for (var e : env.entrySet())
             script += "export " + e.getKey() + "='" + e.getValue() + "' " + System.lineSeparator();
-        }
         IO.println(script);
     }
 }
@@ -35,7 +34,8 @@ Map<String, String> build(Bitwarden bw, Executor executor) throws Exception {
             () -> contributeAbly(bw, env),
             () -> contributeOpenAi(bw, env),
             () -> contributeAws(bw, env),
-            () -> contributeAuth0(bw, env)
+            () -> contributeAuth0(bw, env),
+            () -> contributeGithub(bw, env)
     );
     var futures = contributors.stream() //
             .map(contributor -> CompletableFuture.runAsync(contributor, executor))
@@ -102,6 +102,12 @@ void contributeAuth0(Bitwarden bitwarden, Map<String, String> env) {
     env.put("AUTH0_CLIENT_ID", this.field(bitwarden, item, "client-id"));
     env.put("AUTH0_CLIENT_SECRET", this.field(bitwarden, item, "client-secret"));
     env.put("AUTH0_DOMAIN", this.field(bitwarden, item, "domain"));
+}
+
+void contributeGithub(Bitwarden bitwarden, Map<String, String> env) {
+    var mogulGithubPat = bitwarden.item("mogul-github-pat").get("notes")  .textValue();
+    env.put("GH_USER", "joshlong");
+    env.put("GH_TOKEN", mogulGithubPat);
 }
 
 void contributeDerived(Map<String, String> env) {

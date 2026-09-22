@@ -16,18 +16,16 @@ void main(String[] args) throws Exception {
 
     try (var ex = Executors.newCachedThreadPool()) {
 
-        var repositories = ("mogul-clip mogul-gateway mogul-client mogul-service workspace pipeline")
+        var repositories = ("clip gateway client api workspace pipeline media-processor")
                 .split(" ");
 
         var waiting = new HashSet<Future<?>>();
         for (var repo : repositories)
             waiting.add(ex.submit(run(ghOrg + "/" + repo + ".git", new File(clone, repo.trim()))));
-
-        for (var f : waiting) f.get();
+        
+        for (var f : waiting)
+            f.get();
     }
-
-    for (var tc : new File(cwd, "../to-copy").listFiles())
-        exec("cp -r  " + tc.getAbsolutePath() + " " + new File(clone, tc.getName()).getAbsolutePath());
 
     for (var f : clone.listFiles())
         IO.println("" + f.getAbsolutePath());

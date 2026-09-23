@@ -16,13 +16,13 @@ void main(String[] args) throws Exception {
 
     try (var ex = Executors.newCachedThreadPool()) {
 
-        var repositories = ("clip gateway client api workspace pipeline processors")
+        var repositories = ("clip gateway client api workspace pipeline processors github-actions-setup-jvm-build-env github-actions-setup-container-build-env")
                 .split(" ");
 
         var waiting = new HashSet<Future<?>>();
         for (var repo : repositories)
             waiting.add(ex.submit(run(ghOrg + "/" + repo + ".git", new File(clone, repo.trim()))));
-        
+
         for (var f : waiting)
             f.get();
     }

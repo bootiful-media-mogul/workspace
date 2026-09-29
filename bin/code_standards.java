@@ -135,12 +135,12 @@ void main() throws Exception {
 }
 
 void process(Path pom, boolean preflight) throws Exception {
-    var springBootVersion = "4.1.1";
+    var springBootVersion = "4.1.0";
     var mavenJavaFormatMavenPlugin = "0.0.47";
-    var springAiVersion = "2.0.1";
+    var springAiVersion = "2.0.0";
     var javaVersion = "25";
-    var springCloudVersion = "2025.1.3";
-    var springModulithVersion = "2.1.1";
+    var springCloudVersion = "2025.1.2";
+    var springModulithVersion = "2.1.0";
     var version = "1.0.0-SNAPSHOT";
     var processors = List.of(
             new VersionMavenProjectTransformer (version),//

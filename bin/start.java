@@ -16,7 +16,7 @@ void main(String[] args) throws Exception {
 
     try (var ex = Executors.newCachedThreadPool()) {
 
-        var repositories = ("clip gateway client api workspace pipeline processors github-actions-setup-jvm-build-env github-actions-setup-container-build-env")
+        var repositories = ("clip gateway client api workspace pipeline processors settings-client utils storage jobrunr github-actions-setup-jvm-build-env github-actions-setup-container-build-env")
                 .split(" ");
 
         var waiting = new HashSet<Future<?>>();

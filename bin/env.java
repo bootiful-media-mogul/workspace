@@ -88,6 +88,7 @@ void contributeAbly(Bitwarden bitwarden, Map<String, String> env) {
 
 void contributeOpenAi(Bitwarden bitwarden, Map<String, String> env) {
     env.put("OPENAI_KEY", this.password(bitwarden, "mogul-openai-key"));
+    // env.put("MOGUL_OPENAI_KEY", this.password(bitwarden, "mogul-openai-key"));
 }
 
 void contributeAws(Bitwarden bitwarden, Map<String, String> env) {

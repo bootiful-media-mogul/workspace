@@ -16,7 +16,7 @@ void main(String[] args) throws Exception {
 
     try (var ex = Executors.newCachedThreadPool()) {
 
-        var repositories = ("clip gateway client api workspace pipeline processors settings-client utils storage jobrunr github-actions-setup-jvm-build-env github-actions-setup-container-build-env")
+        var repositories = ("clip gateway client api cleanvoice-client workspace pipeline processors settings-client utils storage jobrunr github-actions-setup-jvm-build-env github-actions-setup-container-build-env")
                 .split(" ");
 
         var waiting = new HashSet<Future<?>>();
@@ -26,6 +26,8 @@ void main(String[] args) throws Exception {
         for (var f : waiting)
             f.get();
     }
+
+    exec ("cp " + clone.getAbsolutePath () + "/workspace/mise.toml " + clone.getAbsolutePath()+ "/mise.toml");
 
     for (var f : clone.listFiles())
         IO.println("" + f.getAbsolutePath());

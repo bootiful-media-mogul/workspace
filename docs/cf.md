@@ -36,6 +36,7 @@ Everything is in the `mogul` folder.
 |---|---|---|
 | `mogul-cf-platform-installer-gandi-pat` | the Gandi Personal Access Token, in the `personal-access-token` field, meant to have only "Manage domain name technical configurations" on `mogul.pub` | `workspace/bin/env.java`, as `GANDI_PAT` |
 | `mogul-cf-installation-*` (14 secure notes) | the foundation's installer state, saved with `cf/secrets-to-bitwarden.sh` on 2026-10-31 | `cf/secrets-from-bitwarden.sh`, and `cf/up.sh` when the cluster doesn't have it |
+| `mogul-cf-image-puller-key` | the JSON key of `mogul-cf-image-puller@joshlong.iam.gserviceaccount.com`, which can only read `mogul-artifact-registry` | `cf-pipeline/bin/deploy.sh`, as the image pull credential |
 
 The first `./up.sh tls` on a new cluster needs the token:
 

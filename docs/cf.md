@@ -18,7 +18,7 @@ It was first built on 2026-10-31; `cf/lock/default/` records what is running.
 | Cluster | `mogul-cf`, GKE Standard, zonal `us-east4-a` |
 | Node pools | 3 × `e2-standard-4` for the platform; 2-4 × `n2d-standard-8` cells with 200GB disks |
 | Domain | `mogul.pub`, registered and hosted at Gandi (LiveDNS); `*.cf.mogul.pub` and `*.apps.mogul.pub` are A records to the static IP, TTL 300 |
-| Let's Encrypt account | `joshua.long@broadcom.com` |
+| Let's Encrypt account | `josh@joshlong.com` |
 
 The cell pool is sized so Mogul fits at peak: api, gateway, client and three processors instances is about 15 cores and 19Gi.
 `CF_MAX_APP_DISK_MB=20480` and `CF_GRACEFUL_SHUTDOWN_SECONDS=300` are for processors: it expands audio to uncompressed WAV (10Gi on GKE), and JobRunr waits up to 4 minutes for running jobs on shutdown.

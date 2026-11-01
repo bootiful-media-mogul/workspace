@@ -62,4 +62,4 @@ These are on top of the constraints in `CLAUDE.md`, and each comes from past cor
 - Never run full-context api tests against Josh's live local RabbitMQ.
 - If gcloud or kubectl keeps asking to re-authenticate, run `gcloud auth login` and `gcloud auth application-default login`.
 - Production is GKE Autopilot in GCP project `joshlong` (context `gke_joshlong_us-east4_joshlong`). Images are in `us-docker.pkg.dev/joshlong/mogul-artifact-registry/<module>`, and assets are served through CloudFront (`pipeline/bin/cloudfront_cache_policy.sh`). In ytt files under `pipeline/`, comments must start with `#!`, not `#`.
-- `cf/` is a separate trial of Cloud Foundry on GKE, on its own cluster; read `cf/AGENTS.md` before working there.
+- `cf/` builds Cloud Foundry on GKE, generically; read `cf/AGENTS.md` before working there. Mogul's own foundation on it, and what is open before Mogul moves, are in `docs/cf.md`.

@@ -23,6 +23,8 @@ It was first built on 2026-10-31; `cf/lock/default/` records what is running.
 Mogul needs about 11GB and 7 cores with one processors instance, and 19GB and 15 cores with three.
 One cell holds that in memory and disk even at peak, which is all Diego checks, but three processors instances would share its 8 cores (12 on GKE today), and one cell means a GKE node upgrade takes every app down until the node is back.
 So it runs at the trial size until Mogul moves, and then at production size: `./up.sh --env production.env cluster` (in `cf/`) applies it, in a few minutes, without downtime.
+Any other change of size or machine type is the same: edit the env file and run `./up.sh cluster`; `cf/README.md`, "Adding capacity", has what each change does and what it costs.
+Since 2026-11-01 the pools are named after their shape (`platform-e2-standard-4-100g`, `cells-n2d-standard-8-200g`), after the scaling support was tested by replacing both.
 `CF_MAX_APP_DISK_MB=20480` and `CF_GRACEFUL_SHUTDOWN_SECONDS=300` are for processors: it expands audio to uncompressed WAV (10Gi on GKE), and JobRunr waits up to 4 minutes for running jobs on shutdown.
 
 Mogul's production cluster is a different one: `joshlong`, GKE Autopilot, also in `us-east4` (context `gke_joshlong_us-east4_joshlong`).
@@ -63,6 +65,7 @@ These are still open, as of 2026-10-31:
 4. **Custom domains at cutover.** `studio.mogul.tools` and the others need certificates on the foundation. `mogul.tools` is also at Gandi, so the same cert-manager setup works, given a Gandi token with access to `mogul.tools` (or HTTP-01 for each name).
 5. **Egress IPs.** If a backing service allows only certain source IPs, the foundation's nodes aren't on the list, and their IPs change as nodes come and go. That would need Cloud NAT with a static IP.
 6. **`shareProcessNamespace: true`.** Every production pod sets it, CF has no equivalent, and the reason isn't recorded.
+7. **The gateway doesn't exit on SIGTERM.** Its native image dies in Netty while shutting down: Lettuce's event loop threads throw `UnsupportedFeatureError: Support for Arena.ofShared is not active: enable with -H:+SharedArenaSupport` (Netty 4.2's Java 25 cleaner, which a native image only supports with that build flag), and the process never exits. On CF the cell kills it after `CF_GRACEFUL_SHUTDOWN_SECONDS` (5 minutes), on GKE the kubelet after 30 seconds. Nothing is lost, since a replacement is already serving, but every gateway stop takes that long. The likely fix is `<buildArg>-H:+SharedArenaSupport</buildArg>` for the gateway's `native-maven-plugin`. A macOS native build that had only served a health check exited cleanly, so check a fix on Linux, with real traffic: on CF, `cf restart gateway` and `cf logs gateway`.
 
 Since 2026-11-01, all four applications run on the foundation, in the `mogul` org and `production` space, pushed by `cf-pipeline` (`~/code/mogul/cf-pipeline`) from production's images: `studio.apps.mogul.pub` (gateway), `ui.apps.mogul.pub` (client), `api.apps.mogul.pub` (api), and processors with no route.
 They share production's backing services, so api and processors there are extra production replicas, and processors takes real jobs.

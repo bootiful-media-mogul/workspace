@@ -58,9 +58,11 @@ These are still open, as of 2026-10-31:
 
 1. **Autoscaling processors.** On GKE, KEDA scales it from the `jobrunr_jobs_by_module` view. Nothing equivalent is installed on the foundation. The options are CF's App Autoscaler with a custom metric, a small app that polls the view and calls the CF API to scale, or fixed instances.
 2. **CPU and memory.** App pods get an `ephemeral-storage` request and limit, but no CPU or memory requests or limits. Diego places instances by memory and disk, and with `setCpuWeight: false` every instance gets equal CPU shares. Still to check: that the memory quota is enforced, and how two processors instances on one cell share it.
-3. **Private images.** Mogul's images are in Artifact Registry (`us-docker.pkg.dev/joshlong/mogul-artifact-registry/<module>`), so `cf push --docker-image` needs `--docker-username _json_key` and a key in `CF_DOCKER_PASSWORD`. Still to check: that the cell agent passes those credentials through to the image pull.
+3. **Private images.** Done, 2026-11-01: the cell agent passes `cf push` docker credentials through to the image pull. The pull credential is a JSON key of `mogul-cf-image-puller@joshlong.iam.gserviceaccount.com`, which has `roles/artifactregistry.reader` on `mogul-artifact-registry` and nothing else; see `cf-pipeline/README.md`.
 4. **Custom domains at cutover.** `studio.mogul.tools` and the others need certificates on the foundation. `mogul.tools` is also at Gandi, so the same cert-manager setup works, given a Gandi token with access to `mogul.tools` (or HTTP-01 for each name).
 5. **Egress IPs.** If a backing service allows only certain source IPs, the foundation's nodes aren't on the list, and their IPs change as nodes come and go. That would need Cloud NAT with a static IP.
 6. **`shareProcessNamespace: true`.** Every production pod sets it, CF has no equivalent, and the reason isn't recorded.
 
-The suggested next step is to push the real processors image with no route, its environment and a 10G disk, and run one real job.
+Since 2026-11-01, all four applications run on the foundation, in the `mogul` org and `production` space, pushed by `cf-pipeline` (`~/code/mogul/cf-pipeline`) from production's images: `studio.apps.mogul.pub` (gateway), `ui.apps.mogul.pub` (client), `api.apps.mogul.pub` (api), and processors with no route.
+They share production's backing services, so api and processors there are extra production replicas, and processors takes real jobs.
+Logging in through `studio.apps.mogul.pub` needs its callback URLs registered first: `https://studio.apps.mogul.pub/login/oauth2/code/auth0` in Auth0, and `https://studio.apps.mogul.pub/oauth2/code/wordpress` in the WordPress.com app.

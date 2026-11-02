@@ -1,7 +1,7 @@
 # Mogul on Cloud Foundry
 
-Mogul is trialing Cloud Foundry on GKE as its next platform.
-This file is what is specific to Mogul: Mogul's foundation, where its pieces live, and what is still open before Mogul moves onto it.
+Mogul runs on Cloud Foundry on GKE, since 2026-11-02.
+This file is what is specific to Mogul: Mogul's foundation, where its pieces live, and what is still open.
 
 ## The foundation
 
@@ -20,16 +20,26 @@ It was first built on 2026-11-01; `cf/lock/typical/` records what is running.
 
 Mogul needs about 11GB and 7 cores with one processors instance, and 19GB and 15 cores with three.
 One cell holds that in memory and disk even at peak, which is all Diego checks, but three processors instances would share its 8 cores, and one cell means a GKE node upgrade takes every app down until the node is back.
-So before Mogul moves, raise `PLATFORM_NODES` to 3 and `CELL_NODES` to 2 in `cf/typical.env` and run `./up.sh --env typical.env cluster`, which applies it in a few minutes, without downtime.
+Raising `PLATFORM_NODES` to 3 and `CELL_NODES` to 2 in `cf/typical.env` and running `./up.sh --env typical.env cluster` fixes both, in a few minutes and without downtime; it hasn't been done yet.
 Any other change of size or machine type is the same; `cf/README.md`, "Adding capacity", has what each change does and what it costs.
 `CF_MAX_APP_DISK_MB=20480` and `CF_GRACEFUL_SHUTDOWN_SECONDS=300` are for processors: it expands audio to uncompressed WAV (10Gi on GKE), and JobRunr waits up to 4 minutes for running jobs on shutdown.
 
-Mogul's production cluster is a different one: `joshlong`, GKE Autopilot, also in `us-east4` (context `gke_joshlong_us-east4_joshlong`).
-`mogul.tools`, at Gandi, is the current production system, and is left alone until a cutover.
+### Capacity, 2026-11-02
+
+Every app runs on the one cell, and the platform nodes run only CF itself.
+Eleven apps in four orgs (`mogul`, `developer_advocacy`, `bootiful-podcast`, `test`) ask for 12.3GB of memory and 41GB of disk, Mogul's five 9.5GB of that.
+The cell has about 27.7GiB of memory and 97GiB of disk to give pods; with the platform's own pods on it, about 14GiB and 60GiB are left, enough for three processors instances or a dozen small apps.
+Actual use is far lower (0.2 cores and 3.9GiB while idle), so CPU, which every app shares, is what runs out first under load, not memory.
+The org quota (100GB) is not the limit.
+`kubectl describe node` on the cell (`Allocated resources`) and `cf curl /v3/processes` give these numbers again.
+
+At list prices the foundation is about $510 a month: about $220 for the two platform nodes, $220 for the cell, $46 for disks and $22 for the load balancer and static IP; the zonal cluster's fee is under GKE's free tier.
+That is about what Mogul and the sites cost on GKE Autopilot, which charged for each pod's requests at roughly 2.5 times a VM's price per core.
+A second cell adds about $220; more apps cost nothing until the cell is full.
 
 ### Mogul's apps on it
 
-The four applications run in the `mogul` org and `production` space, pushed by `pipeline` (`~/code/mogul/pipeline`, `bin/deploy.sh`, with `vars/typical.yml`) from production's images:
+The five applications run in the `mogul` org and `production` space, pushed by `pipeline` (`~/code/mogul/pipeline`, `bin/deploy.sh`, with `vars/typical.yml`) from production's images:
 
 | App | Route |
 |---|---|
@@ -39,7 +49,6 @@ The four applications run in the `mogul` org and `production` space, pushed by `
 | processors | none |
 | redirect | `https://mogul.tools`, a 302 to `https://studio.mogul.tools` with the path kept (`pipeline/redirect/`) |
 
-They share production's backing services, so api and processors there are extra production replicas, and processors takes real jobs.
 `mogul.tools` is a private domain of the `mogul` org, and all of its DNS is in the Cloud DNS zone `custom-mogul-tools` (its name servers at Gandi are `ns-cloud-a1` to `ns-cloud-a4.googledomains.com`); "Moving mogul.tools" below is how it got there.
 Login through `studio.mogul.tools` needed nothing new: production on GKE had already registered `https://studio.mogul.tools/login/oauth2/code/auth0` in Auth0 and `https://studio.mogul.tools/oauth2/code/wordpress` in the WordPress.com app.
 
@@ -66,13 +75,13 @@ After `./up.sh` prints `new installer state`, run `./secrets-to-bitwarden.sh --e
 - He changes laptops at least once a year, so everything above lives in a repository or in Bitwarden, never only on a machine.
 - His home router intermittently answers for some `applicationconcierge.com` names with a stale CNAME to `cfll-mailgun-inbound.cfapps.io`, so `cf` fails with "no such host" there. The records are right; `networksetup -setdnsservers Wi-Fi 1.1.1.1 8.8.8.8` works around it, and `networksetup -setdnsservers Wi-Fi Empty` undoes it.
 
-## Before Mogul moves
+## Still open
 
-All four of Mogul's applications run on the foundation as they are: each is one container with no sidecars, volumes or service account, configured entirely from environment variables, and every backing service is reached over the internet (Crunchy Bridge PostgreSQL, CloudAMQP, Redis Cloud, Elastic Cloud).
+Mogul's applications run on the foundation as they did on GKE: each is one container with no sidecars, volumes or service account, configured entirely from environment variables, and every backing service is reached over the internet (Crunchy Bridge PostgreSQL, CloudAMQP, Redis Cloud, Elastic Cloud).
 The disk cap, the graceful shutdown interval and private images are done.
-These are still open, as of 2026-11-01:
+These are still open, as of 2026-11-02:
 
-1. **Autoscaling processors.** On GKE, KEDA scales it from the `jobrunr_jobs_by_module` view. Nothing equivalent is installed on the foundation. The options are CF's App Autoscaler with a custom metric, a small app that polls the view and calls the CF API to scale, or fixed instances.
+1. **Autoscaling processors.** On GKE, KEDA scaled it from the `jobrunr_jobs_by_module` view; processors now runs as one fixed instance. Nothing equivalent is installed on the foundation. The options are CF's App Autoscaler with a custom metric, a small app that polls the view and calls the CF API to scale, or fixed instances.
 2. **CPU and memory.** App pods get an `ephemeral-storage` request and limit, but no CPU or memory requests or limits. Diego places instances by memory and disk, and with `setCpuWeight: false` every instance gets equal CPU shares. Still to check: that the memory quota is enforced, and how two processors instances on one cell share it.
 3. **Moving `mogul.tools`.** Done on 2026-11-02; see "Moving mogul.tools" below.
 4. **Egress IPs.** If a backing service allows only certain source IPs, the foundation's nodes aren't on the list, and their IPs change as nodes come and go. That would need Cloud NAT with a static IP.
@@ -121,20 +130,11 @@ The move takes all of the domain's DNS to Cloud DNS first, with those three reco
 Steps 1 to 4 are done: `studio`, `ui` and `api.mogul.tools` were moved at 07:41 UTC, and public resolvers had the new address at once.
 The first certificate order failed, because it went out 36 seconds after the switch at Gandi, before the `.tools` servers referred to the new zone, and cert-manager backed off for an hour; it was retried by hand, and `cf/domains/reconcile.sh` now waits for the zone above (`cf/README.md`, "Custom domains").
 
-Mogul on GKE was switched off right away rather than after a day (step 5), since Josh is its only user; it is switched off, not deleted, so the move can be checked with nothing else answering:
+Mogul on GKE was switched off right away rather than after a day (step 5), since Josh is its only user, and the `joshlong` cluster (GKE Autopilot, `us-east4`) was deleted the same day.
+There is no way back to GKE; Cloud Foundry is production.
 
-- `api-deployment`, `client-deployment` and `gateway-deployment` in the `mogul` namespace are scaled to 0, and `processors-deployment` is held at 0 by the annotation `autoscaling.keda.sh/paused-replicas: "0"` on `processors-scaled-object`.
-- `k8s-pipeline`'s `Deploy` workflow is disabled, so an image build doesn't deploy to GKE again.
-- Its Ingresses, static IPs, certificates and `mogul-secrets` are all still there.
-
-To bring it back: `gh workflow enable deploy-to-production.yaml -R bootiful-media-mogul/k8s-pipeline`, `kubectl -n mogul annotate scaledobject processors-scaled-object autoscaling.keda.sh/paused-replicas-`, `kubectl -n mogul scale deploy api-deployment client-deployment gateway-deployment --replicas=1`, and the three A records back in `custom-mogul-tools` (`studio` `34.149.94.25`, `ui` `34.49.42.111`, `api` `136.81.13.160`).
-
-### Before deleting the `joshlong` cluster
-
-Mogul moving is not the only thing on it.
-
-- `joshlong.com`, `api.joshlong.com` and `authorization.joshlong.com` (`developer-advocacy`), and `bootifulpodcast.fm` (`bootiful-podcast`), are served from it too.
-- `mogul-secrets` there is the one complete copy of production's secrets outside GitHub Actions (whose secrets can't be read back). Copy it into Bitwarden first: `bw-unlock && pipeline/bin/secrets-to-bitwarden.sh`, which creates the item `mogul-production-secrets` that `pipeline/bin/env-from-bitwarden.sh` reads.
-- KEDA scales processors there; nothing does on CF yet (item 1 above).
-- The Ingresses' global static IPs (`mogul-gateway-ip`, `mogul-client-ip`, `mogul-api-ip`, and the others) outlive the cluster and keep being billed until they are released.
-
+- Before it went, `joshlong.com`, `api.joshlong.com` (`developer_advocacy`) and `bootifulpodcast.fm` (`bootiful-podcast`) had already moved to the foundation; `authorization.joshlong.com` no longer resolves.
+- Its Ingresses, global static IPs and certificates are gone too, so nothing of it is still billed.
+- Production's secrets live on in the Bitwarden item `mogul-production-secrets` (see "Bitwarden" above), copied from the cluster's `mogul-secrets` by `pipeline/bin/secrets-to-bitwarden.sh`.
+- `k8s-pipeline` is unused, and its `Deploy` workflow is disabled.
+- Processors no longer autoscales (item 1 under "Still open").

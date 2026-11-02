@@ -45,7 +45,7 @@ npm run lint         # eslint --fix
 npm run format       # prettier
 ```
 
-Deployment to production (GKE Autopilot) is `pipeline/bin/deploy.sh`, which renders `pipeline/bin/k8s/carvel` with ytt and deploys `api gateway client processors`.
+The GKE deployment is in `k8s-pipeline/bin/deploy.sh`; the Cloud Foundry deployment is in `pipeline/bin/deploy.sh`. Both deploy `api gateway client processors`.
 Native-image builds and deploys take 15-20 minutes.
 `cf/` builds Cloud Foundry on GKE (see `cf/README.md`); Mogul's trial foundation on it is described in `workspace/docs/cf.md`.
 

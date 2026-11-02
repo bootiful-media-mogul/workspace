@@ -35,8 +35,7 @@ Map<String, String> build(Bitwarden bw, Executor executor) throws Exception {
             () -> contributeOpenAi(bw, env),
             () -> contributeAws(bw, env),
             () -> contributeAuth0(bw, env),
-            () -> contributeGithub(bw, env),
-            () -> contributeCf(bw, env)
+            () -> contributeGithub(bw, env)
     );
     var futures = contributors.stream() //
             .map(contributor -> CompletableFuture.runAsync(contributor, executor))
@@ -44,11 +43,6 @@ Map<String, String> build(Bitwarden bw, Executor executor) throws Exception {
     CompletableFuture.allOf(futures).join();
     contributeDerived(env);
     return Map.copyOf(env);
-}
-
-void contributeCf(Bitwarden bitwarden, Map <String,String> env) {
-    var item = bitwarden.item("mogul-cf-platform-installer-gandi-pat");
-    env.put("GANDI_PAT", this.field(bitwarden, item, "personal-access-token"));
 }
 
 void contributeConstants(Bitwarden bitwarden, Map<String, String> env) {

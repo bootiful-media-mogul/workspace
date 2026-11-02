@@ -18,7 +18,7 @@ void main(String[] args) throws Exception {
 
         var repositories = ("clip gateway client api cleanvoice-client" +
             " workspace pipeline processors settings-client utils storage"+
-            " jobrunr github-actions-setup-jvm-build-env github-actions-setup-container-build-env cf cf-pipeline")
+            " jobrunr github-actions-setup-jvm-build-env github-actions-setup-container-build-env")
                 .split(" ");
 
         var waiting = new HashSet<Future<?>>();

@@ -33,14 +33,17 @@ The four applications run in the `mogul` org and `production` space, pushed by `
 
 | App | Route |
 |---|---|
-| gateway | `https://studio.mogul.pub` |
-| client | `https://ui.mogul.pub` |
-| api | `https://api.mogul.pub` |
+| gateway | `https://studio.mogul.tools` |
+| client | `https://ui.mogul.tools` |
+| api | `https://api.mogul.tools` |
 | processors | none |
 
 They share production's backing services, so api and processors there are extra production replicas, and processors takes real jobs.
-`mogul.pub` is a private domain of the `mogul` org, bound with `cf/handle_dns.sh -o mogul -s production -a gateway -host studio.mogul.pub`, which moved all of its DNS to the Cloud DNS zone `custom-mogul-pub` (its name servers at Gandi are `ns-cloud-b1` to `ns-cloud-b4.googledomains.com`).
-Logging in through `studio.mogul.pub` works because its callback URLs are registered: `https://studio.mogul.pub/login/oauth2/code/auth0` in Auth0, and `https://studio.mogul.pub/oauth2/code/wordpress` in the WordPress.com app.
+`mogul.tools` is to become a private domain of the `mogul` org, the same way `mogul.pub` did; "Moving mogul.tools" below is how.
+Login through `studio.mogul.tools` needs nothing new: production on GKE already registered `https://studio.mogul.tools/login/oauth2/code/auth0` in Auth0 and `https://studio.mogul.tools/oauth2/code/wordpress` in the WordPress.com app.
+
+Until then, the apps answer on `mogul.pub`, a private domain of the `mogul` org, bound with `cf/handle_dns.sh -o mogul -s production -a gateway -host studio.mogul.pub`, which moved all of its DNS to the Cloud DNS zone `custom-mogul-pub` (its name servers at Gandi are `ns-cloud-b1` to `ns-cloud-b4.googledomains.com`).
+Its Auth0 and WordPress.com callback URLs are registered too.
 
 Before 2026-11-01, Mogul's apps ran on an earlier foundation, `mogul-cf` at `api.cf.mogul.pub` with `*.apps.mogul.pub` routes.
 It was deleted with `./down.sh --purge` once they moved, and its configuration, lock files and Bitwarden items went with it.
@@ -70,7 +73,54 @@ These are still open, as of 2026-11-01:
 
 1. **Autoscaling processors.** On GKE, KEDA scales it from the `jobrunr_jobs_by_module` view. Nothing equivalent is installed on the foundation. The options are CF's App Autoscaler with a custom metric, a small app that polls the view and calls the CF API to scale, or fixed instances.
 2. **CPU and memory.** App pods get an `ephemeral-storage` request and limit, but no CPU or memory requests or limits. Diego places instances by memory and disk, and with `setCpuWeight: false` every instance gets equal CPU shares. Still to check: that the memory quota is enforced, and how two processors instances on one cell share it.
-3. **Custom domains at cutover.** `studio.mogul.tools` and the others: `cf/handle_dns.sh -host studio.mogul.tools` delegates just that name from Gandi and gets its certificate, leaving the rest of `mogul.tools` where it is. Add its Auth0 and WordPress.com callback URLs first.
+3. **Moving `mogul.tools`.** See "Moving mogul.tools" below.
 4. **Egress IPs.** If a backing service allows only certain source IPs, the foundation's nodes aren't on the list, and their IPs change as nodes come and go. That would need Cloud NAT with a static IP.
 5. **`shareProcessNamespace: true`.** Every production pod sets it, CF has no equivalent, and the reason isn't recorded.
 6. **The gateway doesn't exit on SIGTERM.** Its native image dies in Netty while shutting down: Lettuce's event loop threads throw `UnsupportedFeatureError: Support for Arena.ofShared is not active: enable with -H:+SharedArenaSupport` (Netty 4.2's Java 25 cleaner, which a native image only supports with that build flag), and the process never exits. On CF the cell kills it after `CF_GRACEFUL_SHUTDOWN_SECONDS` (5 minutes), on GKE the kubelet after 30 seconds. Nothing is lost, since a replacement is already serving, but every gateway stop takes that long. The likely fix is `<buildArg>-H:+SharedArenaSupport</buildArg>` for the gateway's `native-maven-plugin`. A macOS native build that had only served a health check exited cleanly, so check a fix on Linux, with real traffic: on CF, `cf restart gateway` and `cf logs gateway`.
+
+## Moving mogul.tools
+
+`mogul.tools` is registered at Gandi and served by Gandi LiveDNS.
+As of 2026-11-01 it holds the apex (Gandi's parking page, `217.70.184.38`) and three A records, each to a GKE Ingress's own static IP: `studio` (`mogul-gateway-ip`, `34.149.94.25`), `ui` (`mogul-client-ip`, `34.49.42.111`) and `api` (`mogul-api-ip`, `136.81.13.160`), with Google-managed certificates.
+It has no MX, TXT or CAA records, and isn't signed with DNSSEC.
+
+The move takes all of the domain's DNS to Cloud DNS first, with those three records still pointing at GKE, so nothing changes for users until the records are flipped, one at a time, after CF has its certificate.
+
+1. In the `cf` repository, with Bitwarden unlocked (for the Gandi token) and `eval "$(./up.sh --env typical.env shell)"`:
+
+   ```bash
+   ./handle_dns.sh --env typical.env -o mogul -s production -a gateway -host mogul.tools --dry-run
+   ./handle_dns.sh --env typical.env -o mogul -s production -a gateway -host mogul.tools
+   ```
+
+   The dry run should list the `studio`, `ui` and `api` A records to copy and the apex A record to replace.
+   The real run makes `mogul.tools` a private domain of `mogul`, maps the apex to the gateway, copies the three records into the zone `custom-mogul-tools` (where they override its `*.mogul.tools` record to the foundation's gateway), switches the name servers at Gandi, and waits for the `mogul.tools` and `*.mogul.tools` certificate.
+   Only the apex changes for users: the parking page goes.
+2. Deploy `pipeline` with `vars/typical.yml` on `mogul.tools`, which adds the `studio`, `ui` and `api` routes on `mogul.tools`, and points the apps at each other there.
+   The domain has to exist in CF first, or `cf push` fails on the routes.
+   Until step 4, `MOGUL_SERVICE_HOST` and `MOGUL_CLIENT_HOST` still reach GKE's api and client, which is harmless: they are the same images on the same backing services.
+3. Check each host through the foundation's gateway, before any user gets there:
+
+   ```bash
+   for h in studio ui api; do curl -s -o /dev/null -w "$h %{http_code}\n" --resolve $h.mogul.tools:443:34.48.19.183 https://$h.mogul.tools/; done
+   ```
+
+4. Flip a host by deleting its A record from `custom-mogul-tools`, which leaves `*.mogul.tools` to answer:
+
+   ```bash
+   gcloud --project joshlong dns record-sets delete studio.mogul.tools. --type=A --zone=custom-mogul-tools
+   ```
+
+   The records have a TTL of 300 seconds, so a host moves within about five minutes, and putting its record back (`gcloud dns record-sets create ... --rrdatas=<the GKE IP>`) is the way back.
+5. Leave GKE's Mogul running for at least a day after the last flip: resolvers that cached Gandi's name servers before the switch may keep asking Gandi, whose zone still has the GKE addresses, for up to Gandi's NS TTL.
+   Then the `mogul.pub` routes can be unmapped (`cf unmap-route`) and its private domain deleted; its zone stays, per `cf/AGENTS.md`.
+
+### Before deleting the `joshlong` cluster
+
+Mogul moving is not the only thing on it.
+
+- `joshlong.com`, `api.joshlong.com` and `authorization.joshlong.com` (`developer-advocacy`), and `bootifulpodcast.fm` (`bootiful-podcast`), are served from it too.
+- `mogul-secrets` there is the one complete copy of production's secrets, which `pipeline/bin/env-from-gke.sh` reads. They have to be in Bitwarden (or only in GitHub Actions secrets, knowingly) first.
+- KEDA scales processors there; nothing does on CF yet (item 1 above).
+- The Ingresses' global static IPs (`mogul-gateway-ip`, `mogul-client-ip`, `mogul-api-ip`, and the others) outlive the cluster and keep being billed until they are released.
+

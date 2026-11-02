@@ -55,6 +55,7 @@ It was deleted with `./down.sh --purge` once they moved, and its configuration, 
 | `applicationconcierge-cf-installation-*` (14 secure notes) | `application_concierge` | the foundation's installer state | `cf/secrets-from-bitwarden.sh`, and `cf/up.sh` when the cluster doesn't have it |
 | `application_concierge-cf-platform-installer-gandi-pat` | `application_concierge` | a Gandi token that can manage every domain of the account | `cf/handle_dns.sh` |
 | `mogul-cf-image-puller-key` | `mogul` | the JSON key of `mogul-cf-image-puller@joshlong.iam.gserviceaccount.com`, which can only read `mogul-artifact-registry` | `pipeline/bin/deploy.sh`, as the image pull credential |
+| `mogul-production-secrets` | `mogul` | production's secrets, one hidden field per variable, copied from `mogul-secrets` on GKE by `pipeline/bin/secrets-to-bitwarden.sh` | `pipeline/bin/env-from-bitwarden.sh` |
 
 After `./up.sh` prints `new installer state`, run `./secrets-to-bitwarden.sh --env typical.env`.
 
@@ -120,7 +121,7 @@ The move takes all of the domain's DNS to Cloud DNS first, with those three reco
 Mogul moving is not the only thing on it.
 
 - `joshlong.com`, `api.joshlong.com` and `authorization.joshlong.com` (`developer-advocacy`), and `bootifulpodcast.fm` (`bootiful-podcast`), are served from it too.
-- `mogul-secrets` there is the one complete copy of production's secrets, which `pipeline/bin/env-from-gke.sh` reads. They have to be in Bitwarden (or only in GitHub Actions secrets, knowingly) first.
+- `mogul-secrets` there is the one complete copy of production's secrets outside GitHub Actions (whose secrets can't be read back). Copy it into Bitwarden first: `bw-unlock && pipeline/bin/secrets-to-bitwarden.sh`, which creates the item `mogul-production-secrets` that `pipeline/bin/env-from-bitwarden.sh` reads.
 - KEDA scales processors there; nothing does on CF yet (item 1 above).
 - The Ingresses' global static IPs (`mogul-gateway-ip`, `mogul-client-ip`, `mogul-api-ip`, and the others) outlive the cluster and keep being billed until they are released.
 

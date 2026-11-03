@@ -109,14 +109,17 @@ Still to do: `bosh-platform-installer/to-gandi.sh --delete-zones`, from 2026-11-
 
 Mogul's applications run on the foundation as they did on GKE: each is one container with no sidecars, volumes or service account, configured entirely from environment variables, and every backing service is reached over the internet (Crunchy Bridge PostgreSQL, CloudAMQP, Redis Cloud, Elastic Cloud).
 The disk cap, the graceful shutdown interval and private images are done.
-These are still open, as of 2026-11-02:
+These are still open, as of 2026-11-03:
 
 1. **Autoscaling processors.** On GKE, KEDA scaled it from the `jobrunr_jobs_by_module` view; processors now runs as one fixed instance. Nothing equivalent is installed on the foundation. The options are CF's App Autoscaler with a custom metric, a small app that polls the view and calls the CF API to scale, or fixed instances.
 2. **CPU and memory.** App pods get an `ephemeral-storage` request and limit, but no CPU or memory requests or limits. Diego places instances by memory and disk, and with `setCpuWeight: false` every instance gets equal CPU shares. Still to check: that the memory quota is enforced, and how two processors instances on one cell share it.
 3. **Moving `mogul.tools`.** Done on 2026-11-02; see "Moving mogul.tools" below.
 4. **Egress IPs.** None of the backing services limits source IPs: the move to mypaas, whose egress addresses differ, needed nothing. If one ever does, the foundation would need Cloud NAT with a static IP.
 5. **`shareProcessNamespace: true`.** Every production pod sets it, CF has no equivalent, and the reason isn't recorded.
-6. **The gateway doesn't exit on SIGTERM.** Its native image dies in Netty while shutting down: Lettuce's event loop threads throw `UnsupportedFeatureError: Support for Arena.ofShared is not active: enable with -H:+SharedArenaSupport` (Netty 4.2's Java 25 cleaner, which a native image only supports with that build flag), and the process never exits. On CF the cell kills it after `CF_GRACEFUL_SHUTDOWN_SECONDS` (5 minutes), on GKE the kubelet after 30 seconds. Nothing is lost, since a replacement is already serving, but every gateway stop takes that long. The likely fix is `<buildArg>-H:+SharedArenaSupport</buildArg>` for the gateway's `native-maven-plugin`. A macOS native build that had only served a health check exited cleanly, so check a fix on Linux, with real traffic: on CF, `cf restart gateway` and `cf logs gateway`.
+6. **The gateway didn't exit on SIGTERM.** Fixed on 2026-11-03, in the gateway's 98f8e67.
+   Once it had served real traffic, its native image threw `UnsupportedFeatureError: Support for Arena.ofShared is not active` on Lettuce's event loop while shutting down (Netty 4.2's Java 25 cleaner), and hung until the cell killed it after `CF_GRACEFUL_SHUTDOWN_SECONDS` (5 minutes).
+   The `native-maven-plugin` now builds with `-H:+UnlockExperimentalVMOptions -H:+SharedArenaSupport`, and a stopped instance exits in under a second.
+   To reproduce locally, the binary has to proxy some requests before it gets SIGTERM: one that only served a health check exits cleanly either way.
 
 ## Moving mogul.tools
 

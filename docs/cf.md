@@ -16,9 +16,9 @@ It is built by `~/code/application-concierge/bosh-platform-installer` (`mypaas.e
 | Cells | 1 × `n2d-standard-8`, 200GB (`CELL_*` in `mypaas.env`) |
 | App settings | `CF_MAX_APP_DISK_MB=20480`, `CF_GRACEFUL_SHUTDOWN_SECONDS=300`, Docker images allowed, as on the typical foundation |
 | Deploys | `pipeline`, with `vars/mypaas.yml`, as the user `mogul-deployer`, a space developer of `mogul/production` only; its password is in the foundation's CredHub (`/mypaas/mogul/deployer_password`) and the pipeline repository's `CF_PASSWORD` secret |
-| DNS | `mogul.tools` and `mogul.pub` are at Gandi LiveDNS, both private domains of the `mogul` org; `app-domain.sh` sets up an app's domain, certificate and records |
+| DNS | `mogul.tools` is at Gandi LiveDNS, a private domain of the `mogul` org; `app-domain.sh` sets up an app's domain, certificate and records |
 
-The apps and routes are the same as on the typical foundation: the table under "Mogul's apps on it" holds, plus `studio.mogul.pub` (gateway) and `api.mogul.pub` (api), mapped with `app-domain.sh --hostname`.
+The apps and routes are the table under "Mogul's apps on it": all on `mogul.tools`, and nothing on `mogul.pub`, which Mogul no longer uses anywhere (step 6 below).
 The marketplace has Cloud SQL PostgreSQL and MySQL and Cloud Storage buckets, though Mogul uses none of them: its backing services are the same Crunchy Bridge, CloudAMQP, Redis Cloud and Elastic Cloud.
 
 ## The foundation
@@ -101,8 +101,9 @@ After `./up.sh` prints `new installer state`, run `./secrets-to-bitwarden.sh --e
 4. `bosh-platform-installer/domain.sh mogul.tools` issued the certificate, checked each routed host through the load balancer over it, and pointed `mogul.tools`, `studio`, `ui`, `api` and `*` at it, at Gandi; `app-domain.sh` did the same for `studio.mogul.pub` and `api.mogul.pub`.
 5. Once the old records' 300-second TTL had passed, Mogul's five apps were stopped on the typical foundation, and later the same day deleted from it, with the `mogul.tools` and `mogul.pub` domains, so its custom domains loop stops recreating their Cloud DNS zones. There is no way back to the typical foundation.
 
-Still to do: `bosh-platform-installer/to-gandi.sh --delete-zones`, from 2026-11-05, deletes the zones `custom-mogul-tools` and `custom-mogul-pub` in `joshlong`.
-`mogul.pub` itself has no route on either foundation: its apex record still points at the typical foundation's gateway (`34.48.19.183`), where it answered 404.
+6. `mogul.pub` was then dropped altogether: its private domain (with the `studio` and `api` routes) from mypaas, its certificate and map entries, every record of its Gandi LiveDNS zone, and its Cloud DNS zone `custom-mogul-pub` in `joshlong`. The domain stays registered at Gandi, with an empty zone; what the zone had is in `bosh-platform-installer/temp/to-gandi/mogul.pub.gandi-before-removal.json`.
+
+Still to do: `bosh-platform-installer/to-gandi.sh --delete-zones`, from 2026-11-05, deletes the zone `custom-mogul-tools` in `joshlong`.
 
 ## Still open
 

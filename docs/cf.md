@@ -1,7 +1,7 @@
 # Mogul on Cloud Foundry
 
 Mogul runs on the mypaas foundation, open source Cloud Foundry on BOSH in the GCP project `mypaas-cf`, since 2026-11-03 (see "Moving to mypaas" below).
-Before that it ran on Cloud Foundry on GKE (the typical foundation, below), from 2026-11-02.
+Before that it ran on Cloud Foundry on GKE (the typical foundation, below), from 2026-11-02, until that foundation was deleted on 2026-11-03.
 This file is what is specific to Mogul: Mogul's foundation, where its pieces live, and what is still open.
 
 ## Mypaas, the foundation since 2026-11-03
@@ -15,7 +15,7 @@ It is built by `~/code/application-concierge/bosh-platform-installer` (`mypaas.e
 | Load balancer | `34.117.196.24`, Google's global HTTPS load balancer, with a Certificate Manager map of every domain's certificate |
 | Cells | 1 × `n2d-standard-8`, 200GB (`CELL_*` in `mypaas.env`) |
 | App settings | `CF_MAX_APP_DISK_MB=20480`, `CF_GRACEFUL_SHUTDOWN_SECONDS=300`, Docker images allowed, as on the typical foundation |
-| Deploys | `pipeline`, with `vars/mypaas.yml`, as the user `mogul-deployer`, a space developer of `mogul/production` only; its password is in the foundation's CredHub (`/mypaas/mogul/deployer_password`) and the pipeline repository's `CF_PASSWORD` secret |
+| Deploys | `pipeline`, with `vars/mypaas.yml`, as the user `josh` (OrgManager of `mogul`, SpaceDeveloper in `mogul/production`), from the pipeline repository's `CF_USERNAME` and `CF_PASSWORD` secrets |
 | DNS | `mogul.tools` is at Gandi LiveDNS, a private domain of the `mogul` org; `app-domain.sh` sets up an app's domain, certificate and records |
 
 The apps and routes are the table under "Mogul's apps on it": all on `mogul.tools`, and nothing on `mogul.pub`, which Mogul no longer uses anywhere (step 6 below).
@@ -23,7 +23,8 @@ The marketplace has Cloud SQL PostgreSQL and MySQL and Cloud Storage buckets, th
 
 ## The foundation
 
-It was first built on 2026-11-01; `cf/lock/typical/` records what is running.
+This is the typical foundation on GKE, kept as a record: it was deleted on 2026-11-03 (`cloudfoundry-platform-installer/down.sh --env typical.env --purge`), with its cluster, static IP and Cloud DNS zones, and the `cf` and `apps` delegations at Gandi.
+It was first built on 2026-11-01.
 
 | | |
 |---|---|

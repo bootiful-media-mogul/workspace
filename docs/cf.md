@@ -1,7 +1,25 @@
 # Mogul on Cloud Foundry
 
-Mogul runs on Cloud Foundry on GKE, since 2026-11-02.
+Mogul runs on the mypaas foundation, open source Cloud Foundry on BOSH in the GCP project `mypaas-cf`, since 2026-11-03 (see "Moving to mypaas" below).
+Before that it ran on Cloud Foundry on GKE (the typical foundation, below), from 2026-11-02.
 This file is what is specific to Mogul: Mogul's foundation, where its pieces live, and what is still open.
+
+## Mypaas, the foundation since 2026-11-03
+
+It is built by `~/code/application-concierge/bosh-platform-installer` (`mypaas.env`); its README is the full record.
+
+| | |
+|---|---|
+| CF API | `https://api.cf.mypaas.online`; `./up.sh --env mypaas.env admin` prints admin's password |
+| GCP project | `mypaas-cf`, its unit of isolation: `./down.sh` deletes all of it |
+| Load balancer | `34.117.196.24`, Google's global HTTPS load balancer, with a Certificate Manager map of every domain's certificate |
+| Cells | 1 × `n2d-standard-8`, 200GB (`CELL_*` in `mypaas.env`) |
+| App settings | `CF_MAX_APP_DISK_MB=20480`, `CF_GRACEFUL_SHUTDOWN_SECONDS=300`, Docker images allowed, as on the typical foundation |
+| Deploys | `pipeline`, with `vars/mypaas.yml`, as the user `mogul-deployer`, a space developer of `mogul/production` only; its password is in the foundation's CredHub (`/mypaas/mogul/deployer_password`) and the pipeline repository's `CF_PASSWORD` secret |
+| DNS | `mogul.tools` and `mogul.pub` are at Gandi LiveDNS, both private domains of the `mogul` org; `app-domain.sh` sets up an app's domain, certificate and records |
+
+The apps and routes are the same as on the typical foundation: the table under "Mogul's apps on it" holds, plus `studio.mogul.pub` (gateway) and `api.mogul.pub` (api), mapped with `app-domain.sh --hostname`.
+The marketplace has Cloud SQL PostgreSQL and MySQL and Cloud Storage buckets, though Mogul uses none of them: its backing services are the same Crunchy Bridge, CloudAMQP, Redis Cloud and Elastic Cloud.
 
 ## The foundation
 
@@ -27,7 +45,7 @@ Any other change of size or machine type is the same; `cf/README.md`, "Adding ca
 ### Capacity, 2026-11-02
 
 Every app runs on the one cell, and the platform nodes run only CF itself.
-Eleven apps in four orgs (`mogul`, `developer_advocacy`, `bootiful-podcast`, `test`) ask for 12.3GB of memory and 41GB of disk, Mogul's five 9.5GB of that.
+Eleven apps in four orgs (`mogul`, `developer-advocacy`, `bootiful-podcast`, `test`) ask for 12.3GB of memory and 41GB of disk, Mogul's five 9.5GB of that.
 The cell has about 27.7GiB of memory and 97GiB of disk to give pods; with the platform's own pods on it, about 14GiB and 60GiB are left, enough for three processors instances or a dozen small apps.
 Actual use is far lower (0.2 cores and 3.9GiB while idle), so CPU, which every app shares, is what runs out first under load, not memory.
 The org quota (100GB) is not the limit.
@@ -75,6 +93,17 @@ After `./up.sh` prints `new installer state`, run `./secrets-to-bitwarden.sh --e
 - He changes laptops at least once a year, so everything above lives in a repository or in Bitwarden, never only on a machine.
 - His home router intermittently answers for some `applicationconcierge.com` names with a stale CNAME to `cfll-mailgun-inbound.cfapps.io`, so `cf` fails with "no such host" there. The records are right; `networksetup -setdnsservers Wi-Fi 1.1.1.1 8.8.8.8` works around it, and `networksetup -setdnsservers Wi-Fi Empty` undoes it.
 
+## Moving to mypaas, 2026-11-03
+
+1. The foundation got the typical foundation's disk cap, graceful shutdown interval and Docker images, the `mogul` org and `production` space, `mogul.tools` and `mogul.pub` as private domains of `mogul`, and the user `mogul-deployer`.
+2. `pipeline` got `vars/mypaas.yml` (with the foundation's API, `cf-api`), and its workflow deploys with it; `CF_USERNAME` and `CF_PASSWORD`, as repository secrets, override the organization's, which are still the typical foundation's. Its first run deployed all five apps, with no DNS pointing at them yet.
+3. Every app was checked through mypaas's load balancer (`curl --resolve`), and its logs for Postgres and RabbitMQ connections: the backing services don't limit source IPs, so the new foundation's egress addresses needed nothing.
+4. `bosh-platform-installer/domain.sh mogul.tools` issued the certificate, checked each routed host through the load balancer over it, and pointed `mogul.tools`, `studio`, `ui`, `api` and `*` at it, at Gandi; `app-domain.sh` did the same for `studio.mogul.pub` and `api.mogul.pub`.
+5. Once the old records' 300-second TTL had passed, Mogul's five apps were stopped on the typical foundation, and later the same day deleted from it, with the `mogul.tools` and `mogul.pub` domains, so its custom domains loop stops recreating their Cloud DNS zones. There is no way back to the typical foundation.
+
+Still to do: `bosh-platform-installer/to-gandi.sh --delete-zones`, from 2026-11-05, deletes the zones `custom-mogul-tools` and `custom-mogul-pub` in `joshlong`.
+`mogul.pub` itself has no route on either foundation: its apex record still points at the typical foundation's gateway (`34.48.19.183`), where it answered 404.
+
 ## Still open
 
 Mogul's applications run on the foundation as they did on GKE: each is one container with no sidecars, volumes or service account, configured entirely from environment variables, and every backing service is reached over the internet (Crunchy Bridge PostgreSQL, CloudAMQP, Redis Cloud, Elastic Cloud).
@@ -84,7 +113,7 @@ These are still open, as of 2026-11-02:
 1. **Autoscaling processors.** On GKE, KEDA scaled it from the `jobrunr_jobs_by_module` view; processors now runs as one fixed instance. Nothing equivalent is installed on the foundation. The options are CF's App Autoscaler with a custom metric, a small app that polls the view and calls the CF API to scale, or fixed instances.
 2. **CPU and memory.** App pods get an `ephemeral-storage` request and limit, but no CPU or memory requests or limits. Diego places instances by memory and disk, and with `setCpuWeight: false` every instance gets equal CPU shares. Still to check: that the memory quota is enforced, and how two processors instances on one cell share it.
 3. **Moving `mogul.tools`.** Done on 2026-11-02; see "Moving mogul.tools" below.
-4. **Egress IPs.** If a backing service allows only certain source IPs, the foundation's nodes aren't on the list, and their IPs change as nodes come and go. That would need Cloud NAT with a static IP.
+4. **Egress IPs.** None of the backing services limits source IPs: the move to mypaas, whose egress addresses differ, needed nothing. If one ever does, the foundation would need Cloud NAT with a static IP.
 5. **`shareProcessNamespace: true`.** Every production pod sets it, CF has no equivalent, and the reason isn't recorded.
 6. **The gateway doesn't exit on SIGTERM.** Its native image dies in Netty while shutting down: Lettuce's event loop threads throw `UnsupportedFeatureError: Support for Arena.ofShared is not active: enable with -H:+SharedArenaSupport` (Netty 4.2's Java 25 cleaner, which a native image only supports with that build flag), and the process never exits. On CF the cell kills it after `CF_GRACEFUL_SHUTDOWN_SECONDS` (5 minutes), on GKE the kubelet after 30 seconds. Nothing is lost, since a replacement is already serving, but every gateway stop takes that long. The likely fix is `<buildArg>-H:+SharedArenaSupport</buildArg>` for the gateway's `native-maven-plugin`. A macOS native build that had only served a health check exited cleanly, so check a fix on Linux, with real traffic: on CF, `cf restart gateway` and `cf logs gateway`.
 
@@ -133,7 +162,7 @@ The first certificate order failed, because it went out 36 seconds after the swi
 Mogul on GKE was switched off right away rather than after a day (step 5), since Josh is its only user, and the `joshlong` cluster (GKE Autopilot, `us-east4`) was deleted the same day.
 There is no way back to GKE; Cloud Foundry is production.
 
-- Before it went, `joshlong.com`, `api.joshlong.com` (`developer_advocacy`) and `bootifulpodcast.fm` (`bootiful-podcast`) had already moved to the foundation; `authorization.joshlong.com` no longer resolves.
+- Before it went, `joshlong.com`, `api.joshlong.com` (`developer-advocacy`) and `bootifulpodcast.fm` (`bootiful-podcast`) had already moved to the foundation; `authorization.joshlong.com` no longer resolves.
 - Its Ingresses, global static IPs and certificates are gone too, so nothing of it is still billed.
 - Production's secrets live on in the Bitwarden item `mogul-production-secrets` (see "Bitwarden" above), copied from the cluster's `mogul-secrets` by `pipeline/bin/secrets-to-bitwarden.sh`.
 - `k8s-pipeline` is unused, and its `Deploy` workflow is disabled.

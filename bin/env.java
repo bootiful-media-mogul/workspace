@@ -35,7 +35,8 @@ Map<String, String> build(Bitwarden bw, Executor executor) throws Exception {
             () -> contributeOpenAi(bw, env),
             () -> contributeAws(bw, env),
             () -> contributeAuth0(bw, env),
-            () -> contributeGithub(bw, env)
+            () -> contributeGithub(bw, env),
+            () -> contributeAppStoreConnect(bw, env)
     );
     var futures = contributors.stream() //
             .map(contributor -> CompletableFuture.runAsync(contributor, executor))
@@ -109,6 +110,23 @@ void contributeGithub(Bitwarden bitwarden, Map<String, String> env) {
     var mogulGithubPat = bitwarden.item("mogul-github-packages-pat").get("notes").textValue();
     env.put("GH_USER", "joshlong");
     env.put("GH_TOKEN", mogulGithubPat);
+}
+
+// the app store connect api key that clip-mobile/bin/ios_testflight.sh signs and uploads with:
+// the key id and issuer id as fields, and the .p8 file's contents as the notes. only the ios
+// builds need it, so a missing item leaves it out instead of failing everything else
+void contributeAppStoreConnect(Bitwarden bitwarden, Map<String, String> env) {
+    JsonNode item;
+    try {
+        item = bitwarden.item("mogul-clip-appstore-connect-api");
+    }
+    catch (Exception e) {
+        System.err.println("mogul: no mogul-clip-appstore-connect-api item in bitwarden, so no ASC_* variables");
+        return;
+    }
+    env.put("ASC_KEY_ID", this.field(bitwarden, item, "key-id"));
+    env.put("ASC_ISSUER_ID", this.field(bitwarden, item, "issuer-id"));
+    env.put("ASC_KEY", item.get("notes").textValue());
 }
 
 void contributeDerived(Map<String, String> env) {

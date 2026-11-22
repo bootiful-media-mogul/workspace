@@ -16,7 +16,7 @@ void main(String[] args) throws Exception {
 
     try (var ex = Executors.newCachedThreadPool()) {
 
-        var repositories = ("clip-mobile client-compose clip-web gateway client api cleanvoice-client" +
+        var repositories = ("clip-mobile client-compose clip-web gateway client-web api cleanvoice-client" +
             " workspace pipeline processors settings-client utils storage"+
             " jobrunr github-actions-setup-jvm-build-env github-actions-setup-container-build-env")
                 .split(" ");
@@ -29,7 +29,7 @@ void main(String[] args) throws Exception {
             f.get();
     }
 
-    exec ("cp " + clone.getAbsolutePath () + "/workspace/mise.toml " + clone.getAbsolutePath()+ "/mise.toml");
+    exec("cp " + clone.getAbsolutePath () + "/workspace/mise.toml " + clone.getAbsolutePath()+ "/mise.toml");
 
     // the agent guidance for the whole workspace lives in the workspace repository, so it
     // survives a new laptop. link rather than copy, so editing ~/code/mogul/CLAUDE.md edits the

@@ -16,10 +16,12 @@ void main(String[] args) throws Exception {
 
     try (var ex = Executors.newCachedThreadPool()) {
 
-        var repositories = ("clip-mobile client-compose clip-web gateway client-web api cleanvoice-client" +
-            " workspace pipeline processors settings-client utils storage"+
-            " jobrunr github-actions-setup-jvm-build-env github-actions-setup-container-build-env")
-                .split(" ");
+        var repositories = ("client-compose client-vue clip-compose clip-web gateway "+
+            "api cleanvoice-client workspace pipeline processors settings-client utils "+
+            "storage jobrunr github-actions-setup-jvm-build-env "+
+            "github-actions-setup-container-build-env"
+        )
+        .split(" ");
 
         var waiting = new HashSet<Future<?>>();
         for (var repo : repositories)

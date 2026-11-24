@@ -16,7 +16,7 @@ void main(String[] args) throws Exception {
 
     try (var ex = Executors.newCachedThreadPool()) {
 
-        var repositories = ("client-compose client-vue clip-compose clip-web gateway "+
+        var repositories = ("studio-compose clip-compose clip-web gateway "+
             "api cleanvoice-client workspace pipeline processors settings-client utils "+
             "storage jobrunr github-actions-setup-jvm-build-env "+
             "github-actions-setup-container-build-env"

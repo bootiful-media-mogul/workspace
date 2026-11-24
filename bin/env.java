@@ -112,16 +112,17 @@ void contributeGithub(Bitwarden bitwarden, Map<String, String> env) {
     env.put("GH_TOKEN", mogulGithubPat);
 }
 
-// the app store connect api key that clip-mobile/bin/ios_testflight.sh signs and uploads with:
-// the key id and issuer id as fields, and the .p8 file's contents as the notes. only the ios
-// builds need it, so a missing item leaves it out instead of failing everything else
+// the app store connect api key that every ios app's testflight script signs and uploads with
+// (one key serves the whole team): the key id and issuer id as fields, and the .p8 file's
+// contents as the notes. only the ios builds need it, so a missing item leaves it out instead
+// of failing everything else
 void contributeAppStoreConnect(Bitwarden bitwarden, Map<String, String> env) {
     JsonNode item;
     try {
-        item = bitwarden.item("mogul-clip-appstore-connect-api");
+        item = bitwarden.item("mogul-appstore-connect-api");
     }
     catch (Exception e) {
-        System.err.println("mogul: no mogul-clip-appstore-connect-api item in bitwarden, so no ASC_* variables");
+        System.err.println("mogul: no mogul-appstore-connect-api item in bitwarden, so no ASC_* variables");
         return;
     }
     env.put("ASC_KEY_ID", this.field(bitwarden, item, "key-id"));

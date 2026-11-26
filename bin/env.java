@@ -117,17 +117,16 @@ void contributeGithub(Bitwarden bitwarden, Map<String, String> env) {
 // contents as the notes. only the ios builds need it, so a missing item leaves it out instead
 // of failing everything else
 void contributeAppStoreConnect(Bitwarden bitwarden, Map<String, String> env) {
-    JsonNode item;
     try {
-        item = bitwarden.item("mogul-appstore-connect-api");
+        var item = bitwarden.item("mogul-appstore-connect-api");
+        env.put("ASC_KEY_ID", this.field(bitwarden, item, "key-id"));
+        env.put("ASC_ISSUER_ID", this.field(bitwarden, item, "issuer-id"));
+        env.put("ASC_KEY", item.get("notes").textValue());
     }
     catch (Exception e) {
         System.err.println("mogul: no mogul-appstore-connect-api item in bitwarden, so no ASC_* variables");
         return;
     }
-    env.put("ASC_KEY_ID", this.field(bitwarden, item, "key-id"));
-    env.put("ASC_ISSUER_ID", this.field(bitwarden, item, "issuer-id"));
-    env.put("ASC_KEY", item.get("notes").textValue());
 }
 
 void contributeDerived(Map<String, String> env) {

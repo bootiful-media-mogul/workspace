@@ -36,7 +36,8 @@ Map<String, String> build(Bitwarden bw, Executor executor) throws Exception {
             () -> contributeAws(bw, env),
             () -> contributeAuth0(bw, env),
             () -> contributeGithub(bw, env),
-            () -> contributeAppStoreConnect(bw, env)
+            () -> contributeAppStoreConnect(bw, env),
+            () -> contributeAndroid(bw, env)
     );
     var futures = contributors.stream() //
             .map(contributor -> CompletableFuture.runAsync(contributor, executor))
@@ -127,6 +128,51 @@ void contributeAppStoreConnect(Bitwarden bitwarden, Map<String, String> env) {
         System.err.println("mogul: no mogul-appstore-connect-api item in bitwarden, so no ASC_* variables");
         return;
     }
+}
+
+// the upload key that every android app's release build signs with (one key serves studio and
+// clip): the passwords and alias as fields, and the keystore itself as the item's one
+// attachment. bin/android.sh wants the keystore as a file, so it's written to a cache only this
+// user can read, and ANDROID_KEYSTORE names it; ANDROID_KEYSTORE_BASE64 is the same keystore as
+// the github workflows' secret takes it. only the android builds need it, so a missing item
+// leaves it out instead of failing everything else
+void contributeAndroid(Bitwarden bitwarden, Map<String, String> env) {
+    try {
+        var item = bitwarden.item("mogul-android-keystore");
+        var attachments = item.get("attachments");
+        if (attachments == null || attachments.size() != 1)
+            throw new IllegalStateException("it should have exactly one attachment, the keystore");
+        var keystore = this.attachment(item.get("id").textValue(), attachments.get(0).get("id").textValue());
+        var cache = System.getenv().getOrDefault("XDG_CACHE_HOME", System.getProperty("user.home") + "/.cache");
+        var dir = Path.of(cache, "mogul", "android");
+        Files.createDirectories(dir);
+        Files.setPosixFilePermissions(dir, PosixFilePermissions.fromString("rwx------"));
+        var file = dir.resolve("upload.jks");
+        Files.deleteIfExists(file);
+        Files.createFile(file, PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------")));
+        Files.write(file, keystore);
+        env.put("ANDROID_KEYSTORE", file.toString());
+        env.put("ANDROID_KEYSTORE_BASE64", Base64.getEncoder().encodeToString(keystore));
+        env.put("ANDROID_KEYSTORE_PASSWORD", this.field(bitwarden, item, "android-keystore-password"));
+        env.put("ANDROID_KEY_PASSWORD", this.field(bitwarden, item, "android-key-password"));
+        env.put("ANDROID_KEY_ALIAS", this.field(bitwarden, item, "android-key-alias"));
+    }
+    catch (Exception e) {
+        System.err.println("mogul: couldn't read the mogul-android-keystore item in bitwarden (" + e.getMessage()
+                + "), so no ANDROID_* variables");
+    }
+}
+
+// the bitwarden client reads items but not attachments, so this asks the cli for the bytes
+byte[] attachment(String itemId, String attachmentId) throws Exception {
+    var process = new ProcessBuilder("bw", "get", "attachment", attachmentId, "--itemid", itemId, "--raw")
+            .redirectInput(ProcessBuilder.Redirect.from(new File("/dev/null")))
+            .redirectError(ProcessBuilder.Redirect.DISCARD)
+            .start();
+    var bytes = process.getInputStream().readAllBytes();
+    if (process.waitFor() != 0 || bytes.length == 0)
+        throw new IllegalStateException("bw couldn't download attachment " + attachmentId);
+    return bytes;
 }
 
 void contributeDerived(Map<String, String> env) {
